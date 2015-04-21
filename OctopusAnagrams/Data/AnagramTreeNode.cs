@@ -12,9 +12,12 @@ namespace OctopusAnagrams.Data
         }
 
         public IList<WordListTreeNode> Children { get; private set; }
+        public int NumberOfEntries { get; private set; }
 
         public void Parse(string word)
         {
+            NumberOfEntries += 1;
+
             var wordCharArray = word.ToCharArray();
 
             var result = Children.FirstOrDefault(f => f.IndexLetter == wordCharArray[0]);
@@ -26,14 +29,19 @@ namespace OctopusAnagrams.Data
             result.Parse(wordCharArray, word);
         }
 
-        public override string ToString()
+        public List<List<string>> Search(string phrase)
         {
-            string result = "";
-            foreach (var c in Children)
+            var results = new List<List<string>>();
+            foreach (var c in phrase.ToCharArray().OrderBy(x => x))
             {
-                result += string.Format("{0}:\r\n\t{1}" + Environment.NewLine, c.IndexLetter, c);
+                var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
+                if (resolved != null)
+                {
+                    var remainder = phrase.Remove(phrase.IndexOf(c), 1);
+                    results.AddRange(resolved.SearchString(remainder, new List<string>(), results, this));
+                }
             }
-            return result;
+            return results;
         }
     }
 
@@ -68,14 +76,67 @@ namespace OctopusAnagrams.Data
 
         public List<WordListTreeNode> Children { get; private set; }
 
-        public override string ToString()
+        public List<List<string>> SearchString(string phrasePortion, List<string> soFar, List<List<string>> allResults, WordListTree dictionary )
         {
-            string result = "";
-            foreach (var c in Children)
+            if (phrasePortion.Length == 0)
             {
-                result += string.Format("{0}: {1} \r\n\t{2}", c.IndexLetter, c.ResolvedWord, c);
+                if (ResolvedWord != null)
+                {
+                    soFar.Add(ResolvedWord);
+                    allResults.Add(soFar);
+                }
             }
-            return result;
+            foreach (var c in phrasePortion.ToCharArray())
+            {
+                Console.Out.WriteLine(phrasePortion);
+                var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
+                if (resolved != null)
+                {
+                    Console.Out.WriteLine("In: {0}", phrasePortion);
+                    var remainder = phrasePortion.Remove(phrasePortion.IndexOf(c), 1);
+                    Console.Out.WriteLine("Out: {0}", remainder);
+
+                    if (ResolvedWord != null)
+                    {
+                        soFar.Add(ResolvedWord);
+                        //restart search at beginning of dictionary
+                        allResults.AddRange(dictionary.Search(remainder));
+                    }
+                    else
+                    {
+                        allResults = resolved.SearchString(remainder, soFar, allResults, dictionary);
+                    }
+                }
+            }
+            return allResults;
         }
+
+        //public List<List<string>> Search(string phrasePortion, List<List<string>> results)
+        //{
+        //    if (phrasePortion.Length == 0)
+        //    {
+        //        if (ResolvedWord != null)
+        //        {
+        //            results.Add(ResolvedWord);
+        //            return results;
+        //        }
+        //        return null;
+        //    }
+
+        //    foreach (var c in phrasePortion.ToCharArray())
+        //    {
+        //        var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
+        //        if (resolved != null)
+        //        {
+        //            if (ResolvedWord != null)
+        //            {
+        //                var remainder = phrasePortion.Remove(phrasePortion.IndexOf(c), 1);
+        //                resolved.Search(remainder, results);
+        //                results.Add(ResolvedWord);
+        //            }
+        //        }
+        //    }
+        //    return results;
+        //}
     }
 }
