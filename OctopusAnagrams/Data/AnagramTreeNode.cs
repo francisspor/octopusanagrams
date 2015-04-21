@@ -4,6 +4,14 @@ using System.Linq;
 
 namespace OctopusAnagrams.Data
 {
+    public static class Extensions
+    {
+        public static string ToString<T>(this IEnumerable<T> l, string separator)
+        {
+            return "[" + String.Join(separator, l.Select(i => i.ToString()).ToArray()) + "]";
+        }
+    }
+
     public class WordListTree
     {
         public WordListTree()
@@ -31,14 +39,21 @@ namespace OctopusAnagrams.Data
 
         public List<List<string>> Search(string phrase)
         {
+            Console.Out.WriteLine("Searching for: {0}", phrase);
             var results = new List<List<string>>();
             foreach (var c in phrase.ToCharArray().OrderBy(x => x))
             {
                 var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
                 if (resolved != null)
                 {
+                    Console.Out.WriteLine("In:  {0}", phrase);
                     var remainder = phrase.Remove(phrase.IndexOf(c), 1);
-                    results.AddRange(resolved.SearchString(remainder, new List<string>(), results, this));
+                    Console.Out.WriteLine("Out: {0}", remainder);
+                    var result = resolved.SearchString(remainder, this);
+                    if (result != null)
+                    {
+                        results.AddRange(result);
+                    }
                 }
             }
             return results;
@@ -76,39 +91,40 @@ namespace OctopusAnagrams.Data
 
         public List<WordListTreeNode> Children { get; private set; }
 
-        public List<List<string>> SearchString(string phrasePortion, List<string> soFar, List<List<string>> allResults, WordListTree dictionary )
+        public List<List<string>> SearchString(string phrasePortion, WordListTree dictionary)
         {
             if (phrasePortion.Length == 0)
             {
                 if (ResolvedWord != null)
                 {
-                    soFar.Add(ResolvedWord);
-                    allResults.Add(soFar);
+                    return new List<List<string>> {new List<string> {ResolvedWord}};
                 }
             }
             foreach (var c in phrasePortion.ToCharArray())
             {
-                Console.Out.WriteLine(phrasePortion);
                 var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
                 if (resolved != null)
                 {
-                    Console.Out.WriteLine("In: {0}", phrasePortion);
+                    if (ResolvedWord != null)
+                    {
+                        //restart search at beginning of dictionary
+                        var r = dictionary.Search(phrasePortion);
+                        foreach (var x  in r)
+                        {
+                            Console.Out.WriteLine("x: {0}", x.ToString(","));
+                            x.Insert(0, ResolvedWord);
+                            Console.Out.WriteLine("postx: {0}", x.ToString(","));
+                        }
+                        return r;
+                    }
+                    Console.Out.WriteLine("In:  {0}", phrasePortion);
                     var remainder = phrasePortion.Remove(phrasePortion.IndexOf(c), 1);
                     Console.Out.WriteLine("Out: {0}", remainder);
 
-                    if (ResolvedWord != null)
-                    {
-                        soFar.Add(ResolvedWord);
-                        //restart search at beginning of dictionary
-                        allResults.AddRange(dictionary.Search(remainder));
-                    }
-                    else
-                    {
-                        allResults = resolved.SearchString(remainder, soFar, allResults, dictionary);
-                    }
+                    return resolved.SearchString(remainder, dictionary);
                 }
             }
-            return allResults;
+            return null;
         }
 
         //public List<List<string>> Search(string phrasePortion, List<List<string>> results)
