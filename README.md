@@ -6,7 +6,7 @@ This loads a list of words from a file (one per line) into an internal dictionar
 ##Implementation Details
 The first step is to load the words into the dictionary.  The dictionary I chose to create is essentially a tree of nodes, linking character to character, with each node also possibly having a valid word that it resolves to. 
 
-https://raw.githubusercontent.com/francisspor/octopusanagrams/master/Images/OctopusDictionaryLayout.png
+![Image of Dictionary](https://raw.githubusercontent.com/francisspor/octopusanagrams/master/Images/OctopusDictionaryLayout.png)
 
 For each new word the parser starts at the top of the tree, popping characters off the front, stepping down a level in the tree, creating a child if need be, and when the string is empty, puts the entire word in the ResolvedWord of the final child.  Word by word the tree is built, each additional word walking through letter by letter, adding new letters as children to the previous if need be.  Building the dictionary isn't fast, but only needs to happen once.
 
