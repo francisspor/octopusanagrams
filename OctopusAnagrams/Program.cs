@@ -21,7 +21,7 @@ namespace OctopusAnagrams
             var parser = new WordListParser("masterWordlist.txt");
 
             var dictionary = parser.ParseWordList();
-            
+
             Console.Out.WriteLine("Dictionary loaded with {0} entries", dictionary.NumberOfEntries);
             Console.Out.WriteLine("****");
             while (true)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace OctopusAnagrams.Data
@@ -41,14 +42,15 @@ namespace OctopusAnagrams.Data
         {
             Console.Out.WriteLine("Searching for: {0}", phrase);
             var results = new List<List<string>>();
-            foreach (var c in phrase.ToCharArray().OrderBy(x => x))
+
+            foreach (var c in phrase)
             {
                 var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
                 if (resolved != null)
                 {
-                    Console.Out.WriteLine("In:  {0}", phrase);
-                    var remainder = phrase.Remove(phrase.IndexOf(c), 1);
-                    Console.Out.WriteLine("Out: {0}", remainder);
+                    var remainder = phrase.Substring(0, phrase.IndexOf(c)) +
+                                    phrase.Substring(phrase.IndexOf(c) + 1, phrase.Length - (phrase.IndexOf(c) + 1));
+                    Console.Out.WriteLine(remainder);
                     var result = resolved.SearchString(remainder, this);
                     if (result != null)
                     {
@@ -93,38 +95,43 @@ namespace OctopusAnagrams.Data
 
         public List<List<string>> SearchString(string phrasePortion, WordListTree dictionary)
         {
+            var results = new List<List<string>>();
+            Console.Out.WriteLine("Looking at {0}", phrasePortion);
             if (phrasePortion.Length == 0)
             {
                 if (ResolvedWord != null)
                 {
+                    Console.Out.WriteLine(ResolvedWord);
                     return new List<List<string>> {new List<string> {ResolvedWord}};
                 }
             }
-            foreach (var c in phrasePortion.ToCharArray())
+            foreach (var c in phrasePortion)
             {
                 var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
                 if (resolved != null)
                 {
-                    if (ResolvedWord != null)
-                    {
-                        //restart search at beginning of dictionary
-                        var r = dictionary.Search(phrasePortion);
-                        foreach (var x  in r)
-                        {
-                            Console.Out.WriteLine("x: {0}", x.ToString(","));
-                            x.Insert(0, ResolvedWord);
-                            Console.Out.WriteLine("postx: {0}", x.ToString(","));
-                        }
-                        return r;
-                    }
-                    Console.Out.WriteLine("In:  {0}", phrasePortion);
-                    var remainder = phrasePortion.Remove(phrasePortion.IndexOf(c), 1);
-                    Console.Out.WriteLine("Out: {0}", remainder);
+                    Console.Out.WriteLine(resolved.IndexLetter);
+                    //if (ResolvedWord != null)
+                    //{
+                    //    Console.Out.WriteLine(ResolvedWord);
+                    //    //restart search at beginning of dictionary
+                    //    var r = dictionary.Search(phrasePortion);
+                    //    foreach (var x  in r)
+                    //    {
+                    //        Console.Out.WriteLine("x: {0}", x.ToString(","));
+                    //        x.Insert(0, ResolvedWord);
+                    //        //                          Console.Out.WriteLine("postx: {0}", x.ToString(","));
+                    //    }
+                    //    return r;
+                    //}
 
-                    return resolved.SearchString(remainder, dictionary);
+                    var remainder = phrasePortion.Substring(0, phrasePortion.IndexOf(c)) +
+                                    phrasePortion.Substring(phrasePortion.IndexOf(c) + 1, phrasePortion.Length - (phrasePortion.IndexOf(c) + 1));
+                    results.AddRange(resolved.SearchString(remainder, dictionary));
                 }
             }
-            return null;
+            return results;
+//            return new List<List<string>>();
         }
 
         //public List<List<string>> Search(string phrasePortion, List<List<string>> results)
