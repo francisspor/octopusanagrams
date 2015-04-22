@@ -14,7 +14,6 @@ namespace OctopusAnagrams.Data
 
         public WordListTree ParseWordList()
         {
-            Console.Out.WriteLine(fileName);
             var list = new WordListTree ();
             using (var fileReader = new StreamReader(string.Format("WordLists/{0}", fileName)))
             {

@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 
 namespace OctopusAnagrams.Data
 {
     public static class Extensions
     {
+        public static string Hash<T>(this IEnumerable<T> l)
+        {
+            return l.ToString("+").GetHashCode().ToString( CultureInfo.CurrentCulture);
+        }
+
         public static string ToString<T>(this IEnumerable<T> l, string separator)
         {
             return "[" + String.Join(separator, l.Select(i => i.ToString()).ToArray()) + "]";
@@ -38,23 +43,33 @@ namespace OctopusAnagrams.Data
             result.Parse(wordCharArray, word);
         }
 
-        public List<List<string>> Search(string phrase)
+        public Dictionary<string, List<string>> Search(string phrase)
         {
-            Console.Out.WriteLine("Searching for: {0}", phrase);
-            var results = new List<List<string>>();
+            var results = new Dictionary<string, List<string>>();
 
-            foreach (var c in phrase)
+            char[] a = phrase.ToCharArray();
+            Array.Sort(a);
+            var sortedPhrase = new string(a);
+
+            foreach (var c in sortedPhrase)
             {
                 var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
                 if (resolved != null)
                 {
-                    var remainder = phrase.Substring(0, phrase.IndexOf(c)) +
-                                    phrase.Substring(phrase.IndexOf(c) + 1, phrase.Length - (phrase.IndexOf(c) + 1));
-                    Console.Out.WriteLine(remainder);
+                    var remainder = sortedPhrase.Substring(0, sortedPhrase.IndexOf(c)) +
+                                    sortedPhrase.Substring(sortedPhrase.IndexOf(c) + 1,
+                                        sortedPhrase.Length - (sortedPhrase.IndexOf(c) + 1));
                     var result = resolved.SearchString(remainder, this);
                     if (result != null)
                     {
-                        results.AddRange(result);
+                        foreach (var x in result.Values)
+                        {
+                            var hash = x.Hash();
+                            if (!results.ContainsKey(hash))
+                            {
+                                results.Add(hash, x);
+                            }
+                        }
                     }
                 }
             }
@@ -93,16 +108,19 @@ namespace OctopusAnagrams.Data
 
         public List<WordListTreeNode> Children { get; private set; }
 
-        public List<List<string>> SearchString(string phrasePortion, WordListTree dictionary)
+        public Dictionary<string, List<string>> SearchString(string phrasePortion, WordListTree dictionary)
         {
-            var results = new List<List<string>>();
-            Console.Out.WriteLine("Looking at {0}", phrasePortion);
+            var results = new Dictionary<string, List<string>>();
             if (phrasePortion.Length == 0)
             {
                 if (ResolvedWord != null)
                 {
-                    Console.Out.WriteLine(ResolvedWord);
-                    return new List<List<string>> {new List<string> {ResolvedWord}};
+                    var item = new List<string> {ResolvedWord};
+                    var hash = item.Hash();
+                    if (!results.ContainsKey(hash))
+                    {
+                        results.Add(hash, item);
+                    }
                 }
             }
             foreach (var c in phrasePortion)
@@ -110,56 +128,41 @@ namespace OctopusAnagrams.Data
                 var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
                 if (resolved != null)
                 {
-                    Console.Out.WriteLine(resolved.IndexLetter);
-                    //if (ResolvedWord != null)
-                    //{
-                    //    Console.Out.WriteLine(ResolvedWord);
-                    //    //restart search at beginning of dictionary
-                    //    var r = dictionary.Search(phrasePortion);
-                    //    foreach (var x  in r)
-                    //    {
-                    //        Console.Out.WriteLine("x: {0}", x.ToString(","));
-                    //        x.Insert(0, ResolvedWord);
-                    //        //                          Console.Out.WriteLine("postx: {0}", x.ToString(","));
-                    //    }
-                    //    return r;
-                    //}
+                    if (ResolvedWord != null)
+                    {
+                        //restart search at beginning of dictionary
+                        var r = dictionary.Search(phrasePortion);
+                        foreach (var x in r.Values)
+                        {
+                            // have to jam the resolved word into the generated results
+                            x.Insert(0, ResolvedWord);
 
+                            var hash = x.Hash();
+                            if (!results.ContainsKey(hash))
+                            {
+                                results.Add(hash, x);
+                            }
+                        }
+                    }
+
+                    // Crop it down, removing that letter
                     var remainder = phrasePortion.Substring(0, phrasePortion.IndexOf(c)) +
-                                    phrasePortion.Substring(phrasePortion.IndexOf(c) + 1, phrasePortion.Length - (phrasePortion.IndexOf(c) + 1));
-                    results.AddRange(resolved.SearchString(remainder, dictionary));
+                                    phrasePortion.Substring(phrasePortion.IndexOf(c) + 1,
+                                        phrasePortion.Length - (phrasePortion.IndexOf(c) + 1));
+
+                    var tempResults = resolved.SearchString(remainder, dictionary);
+
+                    foreach (var x in tempResults.Values)
+                    {
+                        var hash = x.Hash();
+                        if (!results.ContainsKey(hash))
+                        {
+                            results.Add(hash, x);
+                        }
+                    }
                 }
             }
             return results;
-//            return new List<List<string>>();
         }
-
-        //public List<List<string>> Search(string phrasePortion, List<List<string>> results)
-        //{
-        //    if (phrasePortion.Length == 0)
-        //    {
-        //        if (ResolvedWord != null)
-        //        {
-        //            results.Add(ResolvedWord);
-        //            return results;
-        //        }
-        //        return null;
-        //    }
-
-        //    foreach (var c in phrasePortion.ToCharArray())
-        //    {
-        //        var resolved = Children.FirstOrDefault(r => r.IndexLetter == c);
-        //        if (resolved != null)
-        //        {
-        //            if (ResolvedWord != null)
-        //            {
-        //                var remainder = phrasePortion.Remove(phrasePortion.IndexOf(c), 1);
-        //                resolved.Search(remainder, results);
-        //                results.Add(ResolvedWord);
-        //            }
-        //        }
-        //    }
-        //    return results;
-        //}
     }
 }
